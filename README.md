@@ -18,7 +18,7 @@ Then, you can see `stdout` and `stderr` of the command.
     $ ls /path/to/dir
     proctask.json    stderr    stdin    stdout
 
-### `proctask.json`
+### proctask.json
 
     {
       "command": ["ruby", "-e", "p ENV"]

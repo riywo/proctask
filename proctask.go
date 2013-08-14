@@ -2,63 +2,50 @@ package main
 
 import (
     "os"
-    "os/exec"
-    "io/ioutil"
-    "encoding/json"
-    "path/filepath"
+    "github.com/jcelliott/lumber"
 )
 
-type Proctask struct {
-    Command  []string
-    Env      []string
-    Dir      string
-}
+const configFile = "proctask.json"
+const stdinFile  = "stdin"
+const stdoutFile = "stdout"
+const stderrFile = "stderr"
 
-func NewProctask() *Proctask {
-    conf, err := ioutil.ReadFile("./proctask.json")
-    if err != nil { panic(err) }
-    var proctask Proctask
-    err = json.Unmarshal(conf, &proctask)
-    if err != nil { panic(err) }
-
-    return &proctask
-}
+var log *lumber.ConsoleLogger
 
 func main() {
-    var proctask = *NewProctask()
+    os.Exit(realMain())
+}
 
-    stdi, err := os.Open(filepath.Join(proctask.Dir, "stdin"))
-    if err != nil { panic(err) }
-    defer func() {
-        if err := stdi.Close(); err != nil {
-            panic(err)
-        }
-    }()
+func realMain() int {
+    log = buildLogger()
+    dir := workingDir()
 
-    stdo, err := os.Create(filepath.Join(proctask.Dir, "stdout"))
-    if err != nil { panic(err) }
-    defer func() {
-        if err := stdo.Close(); err != nil {
-            panic(err)
-        }
-    }()
-
-    stde, err := os.Create(filepath.Join(proctask.Dir, "stderr"))
-    if err != nil { panic(err) }
-    defer func() {
-        if err := stde.Close(); err != nil {
-            panic(err)
-        }
-    }()
-
-    cmd := exec.Command(proctask.Command[0], proctask.Command[1:]...)
-    cmd.Env    = proctask.Env
-    cmd.Dir    = proctask.Dir
-    cmd.Stdin  = stdi
-    cmd.Stdout = stdo
-    cmd.Stderr = stde
-    err = cmd.Run()
+    engine, err := NewEngine(dir)
     if err != nil {
-        panic(err)
+        log.Error("%s", err)
+        return 1
     }
+
+    err = engine.Run()
+    if err != nil {
+        log.Error("Command failed: %s", err)
+        return 1
+    }
+
+    log.Info("Command succeeded!")
+    return 0
+}
+
+func buildLogger() *lumber.ConsoleLogger {
+    return lumber.NewConsoleLogger(lumber.DEBUG)
+}
+
+func workingDir() string {
+    var dir string
+    if len(os.Args) < 2 {
+        dir, _ = os.Getwd()
+    } else {
+        dir = os.Args[1]
+    }
+    return dir
 }

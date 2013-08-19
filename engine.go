@@ -90,14 +90,19 @@ func (e *engine) Run() error {
 
 func loadEnv(dir string) ([]string, error) {
     envPath := filepath.Join(dir, envFile)
-    content, err := ioutil.ReadFile(envPath)
-    if err != nil {
-        log.Error("reading path: %s", envPath)
-        return nil, err
+    var env []string
+    if _, err := os.Stat(envPath); os.IsNotExist(err) {
+        log.Info("env file doesn't exist: %s", envPath)
+    } else {
+        content, err := ioutil.ReadFile(envPath)
+        if err != nil {
+            log.Error("reading path: %s", envPath)
+            return nil, err
+        }
+        log.Info("load env path: %s", envPath)
+        env = strings.Split(string(content), "\n")
     }
 
-    log.Info("load env path: %s", envPath)
-    env := strings.Split(string(content), "\n")
     env = append(env, fmt.Sprintf("USER=%s", os.Getenv("USER")))
     env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
     return env, nil

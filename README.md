@@ -54,6 +54,7 @@ Then, you can see `stdout` and `stderr` of the command.
 - stdout rotate
 - stdout size limit
 - stderr timestamp
+- exit code inheritance
 - test
 
 ## License

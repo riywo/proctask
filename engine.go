@@ -4,11 +4,14 @@ import (
     "os"
     "os/exec"
     "io"
+    "io/ioutil"
     "path/filepath"
+    "strings"
+    "fmt"
 )
 
 type engine struct {
-    Config *config
+    Env    []string
     Cmd    *exec.Cmd
     Stdin  *os.File
     Stdout *os.File
@@ -16,13 +19,13 @@ type engine struct {
 }
 
 func NewEngine(dir string) (*engine, error) {
-    config, err := loadConfig(dir)
+    env, err := loadEnv(dir)
     if err != nil {
-        log.Error("%s", err)
+        log.Error("env load error")
         return nil, err
     }
 
-    cmd, err := buildCmd(dir, config)
+    cmd, err := buildCmd(dir)
     if err != nil {
         log.Error("%s", err)
         return nil, err
@@ -47,7 +50,7 @@ func NewEngine(dir string) (*engine, error) {
     }
 
     var engine engine
-    engine.Config = config
+    engine.Env    = env
     engine.Cmd    = cmd
     engine.Stdin  = stdin
     engine.Stdout = stdout
@@ -57,6 +60,7 @@ func NewEngine(dir string) (*engine, error) {
 }
 
 func (e *engine) Run() error {
+    e.Cmd.Env    = e.Env
     e.Cmd.Stdin  = e.Stdin
 
     stdout, err := e.Cmd.StdoutPipe()
@@ -83,29 +87,26 @@ func (e *engine) Run() error {
     return err
 }
 
-func loadConfig(dir string) (*config, error) {
-    configPath := filepath.Join(dir, configFile)
-    f, err := os.Open(configPath)
+func loadEnv(dir string) ([]string, error) {
+    envPath := filepath.Join(dir, envFile)
+    content, err := ioutil.ReadFile(envPath)
     if err != nil {
-        log.Error("reading path: %s", configPath)
-        return nil, err
-    }
-    defer f.Close()
-
-    var config config
-    if err = decodeConfig(f, &config); err != nil {
-        log.Error("parse json path: %s", configPath)
+        log.Error("reading path: %s", envPath)
         return nil, err
     }
 
-    log.Info("load config path: %s", configPath)
-    return &config, nil
+    log.Info("load env path: %s", envPath)
+    env := strings.Split(string(content), "\n")
+    env = append(env, fmt.Sprintf("USER=%s", os.Getenv("USER")))
+    env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+    return env, nil
 }
 
-func buildCmd(dir string, config *config) (*exec.Cmd, error) {
-    cmd := exec.Command(config.Command[0], config.Command[1:]...)
-    cmd.Env    = config.buildEnv()
-    cmd.Dir    = dir
+func buildCmd(dir string) (*exec.Cmd, error) {
+    runPath := filepath.Join(dir, runFile)
+    shell   := os.Getenv("SHELL")
+    cmd     := exec.Command(shell, "-l", "-c", runPath)
+    cmd.Dir = dir
     return cmd, nil
 }
 

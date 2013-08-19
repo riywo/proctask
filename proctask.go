@@ -2,10 +2,12 @@ package main
 
 import (
     "os"
+    "path/filepath"
     "github.com/jcelliott/lumber"
 )
 
-const configFile = "proctask.json"
+const runFile    = "run"
+const envFile    = "env"
 const stdinFile  = "stdin"
 const stdoutFile = "stdout"
 const stderrFile = "stderr"
@@ -18,7 +20,11 @@ func main() {
 
 func realMain() int {
     log = buildLogger()
-    dir := workingDir()
+    dir, err := workingDir()
+    if err != nil {
+        log.Error("%s", err)
+        return 1
+    }
 
     engine, err := NewEngine(dir)
     if err != nil {
@@ -40,12 +46,16 @@ func buildLogger() *lumber.ConsoleLogger {
     return lumber.NewConsoleLogger(lumber.DEBUG)
 }
 
-func workingDir() string {
+func workingDir() (string, error) {
     var dir string
+    var err error
     if len(os.Args) < 2 {
-        dir, _ = os.Getwd()
+        dir, err = os.Getwd()
+        if err != nil { return "", err }
     } else {
         dir = os.Args[1]
     }
-    return dir
+    dir, err = filepath.Abs(dir)
+    if err != nil { return "", err }
+    return dir, nil
 }

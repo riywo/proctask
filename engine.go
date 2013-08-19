@@ -8,6 +8,7 @@ import (
     "path/filepath"
     "strings"
     "fmt"
+    "github.com/riywo/loginshell"
 )
 
 type engine struct {
@@ -104,7 +105,8 @@ func loadEnv(dir string) ([]string, error) {
 
 func buildCmd(dir string) (*exec.Cmd, error) {
     runPath := filepath.Join(dir, runFile)
-    shell   := os.Getenv("SHELL")
+    shell, err := loginshell.Shell()
+    if err != nil { return nil, err }
     cmd     := exec.Command(shell, "-l", "-c", runPath)
     cmd.Dir = dir
     return cmd, nil

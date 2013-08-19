@@ -49,6 +49,13 @@ Then, you can see `stdout` and `stderr` of the command.
     $ cat stderr
     Hi!
 
+## TODO
+
+- stdout rotate
+- stdout size limit
+- stderr timestamp
+- test
+
 ## License
 
 MIT
